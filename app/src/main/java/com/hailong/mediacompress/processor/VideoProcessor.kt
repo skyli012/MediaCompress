@@ -1,6 +1,7 @@
 package com.hailong.mediacompress.processor
 
 import android.content.Context
+import android.util.Log
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
 import java.io.File
@@ -27,7 +28,7 @@ object VideoProcessor {
         outputPath: String,
         crf: Int = 28,
         scale: String? = null,
-        preset: String = "medium",
+        extraFlags: String? = null,
         listener: VideoCompressListener
     ) {
         // 构建FFmpeg命令
@@ -35,30 +36,44 @@ object VideoProcessor {
         val commandBuilder = StringBuilder()
         commandBuilder.append("-y ") // 覆盖输出文件
         commandBuilder.append("-i \"$inputPath\" ")
-        commandBuilder.append("-vcodec libx264 ")
-        commandBuilder.append("-crf $crf ")
-        commandBuilder.append("-preset $preset ")
+        
+        // 使用 Android 硬件加速编码器 h264_mediacodec (替代缺失的 libx264)
+        commandBuilder.append("-vcodec h264_mediacodec ")
+        
+        // 硬件编码器通常不支持 CRF，这里我们使用码率控制或默认质量
+        // 也可以使用 -b:v 动态调整，这里先移除不支持的 -crf 和 -preset
+        // commandBuilder.append("-crf $crf ")
+        // commandBuilder.append("-preset fast ")
+        
+        // 强制音频使用 aac，增强兼容性
+        commandBuilder.append("-acodec aac ")
         
         if (scale != null) {
             commandBuilder.append("-vf scale=$scale ")
         }
         
+        if (extraFlags != null) {
+            commandBuilder.append("$extraFlags ")
+        }
+        
         commandBuilder.append("\"$outputPath\"")
 
         val command = commandBuilder.toString()
+        Log.d("VideoProcessor", "Executing FFmpeg command: $command")
 
         FFmpegKit.executeAsync(command, { session ->
-            val state = session.state
             val returnCode = session.returnCode
-
             if (ReturnCode.isSuccess(returnCode)) {
+                Log.i("VideoProcessor", "FFmpeg command successful!")
                 listener.onComplete(true, outputPath)
             } else {
+                Log.e("VideoProcessor", "FFmpeg command failed with return code ${returnCode}.")
+                Log.e("VideoProcessor", "Command: ${session.command}")
+                Log.e("VideoProcessor", "Logs: ${session.allLogsAsString}")
                 listener.onComplete(false, null)
             }
         }, { log ->
-            // 这里可以解析log中的时间信息来计算进度
-            // FFmpeg输出通常包含 time=00:00:00.00 格式的信息
+            Log.d("VideoProcessor", "FFmpeg log: ${log.message}")
         }, { statistics ->
             // FFmpegKit 提供的统计信息
             // 进度可以通过当前处理的时间除以总时间计算

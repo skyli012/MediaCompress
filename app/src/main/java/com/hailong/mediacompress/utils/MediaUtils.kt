@@ -18,9 +18,10 @@ object MediaUtils {
      * @param context 上下文
      * @param file 要保存的文件
      * @param isVideo 是否为视频
+     * @param mimeType MIME类型，如果不传则根据文件后缀推断
      * @return 保存后的Uri，如果失败则返回null
      */
-    fun saveToGallery(context: Context, file: File, isVideo: Boolean): Uri? {
+    fun saveToGallery(context: Context, file: File, isVideo: Boolean, mimeType: String? = null): Uri? {
         val originalName = file.name
         val timestamp = System.currentTimeMillis()
         // 增加时间戳后缀防止重名导致保存失败
@@ -32,7 +33,26 @@ object MediaUtils {
             "${originalName}_$timestamp"
         }
 
-        val mimeType = if (isVideo) "video/mp4" else "image/jpeg"
+        val finalMimeType = mimeType ?: if (isVideo) {
+            val ext = file.extension.toLowerCase(java.util.Locale.ROOT)
+            when (ext) {
+                "mp4" -> "video/mp4"
+                "mov", "quicktime" -> "video/quicktime"
+                "mkv" -> "video/x-matroska"
+                "avi" -> "video/x-msvideo"
+                else -> "video/mp4"
+            }
+        } else {
+            val ext = file.extension.toLowerCase(java.util.Locale.ROOT)
+            when (ext) {
+                "jpg", "jpeg" -> "image/jpeg"
+                "png" -> "image/png"
+                "webp" -> "image/webp"
+                "gif" -> "image/gif"
+                else -> "image/jpeg"
+            }
+        }
+
         val relativePath = if (isVideo) {
             "${Environment.DIRECTORY_MOVIES}/MediaCompress"
         } else {
@@ -41,7 +61,7 @@ object MediaUtils {
 
         val contentValues = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-            put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+            put(MediaStore.MediaColumns.MIME_TYPE, finalMimeType)
             put(MediaStore.MediaColumns.DATE_ADDED, timestamp / 1000)
             put(MediaStore.MediaColumns.DATE_TAKEN, timestamp)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

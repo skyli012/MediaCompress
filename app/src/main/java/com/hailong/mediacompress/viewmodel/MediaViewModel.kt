@@ -6,27 +6,43 @@ import androidx.lifecycle.viewModelScope
 import com.hailong.mediacompress.model.MediaItem
 import com.hailong.mediacompress.model.MediaType
 import com.hailong.mediacompress.repository.MediaRepository
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class MediaViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = MediaRepository(application)
     val compressionTasks: StateFlow<List<MediaItem>> = repository.compressionTasks
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _selectedItems = MutableStateFlow<List<MediaItem>>(emptyList())
+    val selectedItems: StateFlow<List<MediaItem>> = _selectedItems
 
     fun addTasks(items: List<MediaItem>) {
-        repository.addTasks(items)
+        _selectedItems.value = items
+        viewModelScope.launch {
+            repository.addTasks(items)
+        }
     }
 
-    fun startCompression(quality: Int, maxWidth: Int, maxHeight: Int, crf: Int, scale: String?) {
+    fun startImageCompression(quality: Int, format: String, scale: Float) {
         viewModelScope.launch {
-            compressionTasks.value.forEach { item ->
-                if (item.type == MediaType.IMAGE) {
-                    repository.compressImage(item, quality, maxWidth, maxHeight)
-                } else if (item.type == MediaType.VIDEO) {
-                    repository.compressVideo(item, crf, scale)
-                }
+            val itemsToCompress = _selectedItems.value.filter { it.type == MediaType.IMAGE }
+            repository.compressImages(itemsToCompress, quality, format, scale)
+        }
+    }
+
+    fun startVideoCompression(quality: String, resolution: String, removeAudio: Boolean) {
+        viewModelScope.launch {
+            _selectedItems.value.firstOrNull { it.type == MediaType.VIDEO }?.let { item ->
+                repository.compressVideo(item, quality, resolution, removeAudio)
             }
+        }
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch {
+            repository.clearAllHistory()
         }
     }
 }

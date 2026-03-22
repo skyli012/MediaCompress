@@ -5,9 +5,11 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.ExifInterface
+import android.os.Build
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.util.Locale
 
 object ImageProcessor {
 
@@ -29,7 +31,7 @@ object ImageProcessor {
         quality: Int = 80,
         maxWidth: Int = 1920,
         maxHeight: Int = 1080,
-        format: Bitmap.CompressFormat = Bitmap.CompressFormat.JPEG
+        format: String = "JPEG"
     ): File? {
         return try {
             val inputStream: InputStream? = context.contentResolver.openInputStream(inputUri)
@@ -60,7 +62,12 @@ object ImageProcessor {
 
             // 质量压缩并保存
             val fos = FileOutputStream(outputFile)
-            bitmap.compress(format, quality, fos)
+            val compressFormat = when (format.toUpperCase(Locale.ROOT)) {
+                "WEBP" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) Bitmap.CompressFormat.WEBP_LOSSY else Bitmap.CompressFormat.WEBP
+                "PNG" -> Bitmap.CompressFormat.PNG
+                else -> Bitmap.CompressFormat.JPEG
+            }
+            bitmap.compress(compressFormat, quality, fos)
             fos.flush()
             fos.close()
             bitmap.recycle()
@@ -76,7 +83,7 @@ object ImageProcessor {
         val (height: Int, width: Int) = options.outHeight to options.outWidth
         var inSampleSize = 1
 
-        if (height > reqHeight || width > reqWidth) {
+        if (reqWidth > 0 && reqHeight > 0 && (height > reqHeight || width > reqWidth)) {
             val halfHeight: Int = height / 2
             val halfWidth: Int = width / 2
 

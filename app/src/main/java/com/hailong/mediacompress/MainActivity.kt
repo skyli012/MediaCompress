@@ -1,69 +1,67 @@
 package com.hailong.mediacompress
 
 import android.Manifest
-import android.content.Context
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.OpenableColumns
-import android.widget.Button
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.hailong.mediacompress.model.MediaItem
-import com.hailong.mediacompress.model.MediaType
-import com.hailong.mediacompress.ui.MediaAdapter
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.hailong.mediacompress.ui.screens.*
+import com.hailong.mediacompress.ui.theme.MediaCompressTheme
+import com.hailong.mediacompress.ui.theme.PrimaryBlue
+import com.hailong.mediacompress.ui.theme.TextGrey
 import com.hailong.mediacompress.viewmodel.MediaViewModel
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import java.io.File
-import java.io.FileOutputStream
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
 
     private val viewModel: MediaViewModel by viewModels()
-    private lateinit var mediaAdapter: MediaAdapter
-
-    private val imagePickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
-        uris?.let { handleSelectedUris(it, MediaType.IMAGE) }
-    }
-
-    private val videoPickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { handleSelectedUris(listOf(it), MediaType.VIDEO) }
-    }
 
     private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
         val granted = permissions.entries.all { it.value }
         if (granted) {
-            Toast.makeText(this, "Permissions granted", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "权限已授予", Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(this, "Permissions denied. Some features may not work.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "部分权限被拒绝，某些功能可能无法使用。", Toast.LENGTH_SHORT).show()
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+        
+        setContent {
+            MediaCompressTheme {
+                MainApp(viewModel)
+            }
         }
 
         checkAndRequestPermissions()
-        setupRecyclerView()
-        setupButtons()
-        observeViewModel()
     }
 
     private fun checkAndRequestPermissions() {
@@ -84,103 +82,195 @@ class MainActivity : AppCompatActivity() {
             permissionLauncher.launch(toRequest.toTypedArray())
         }
     }
+}
 
-    private fun setupRecyclerView() {
-        mediaAdapter = MediaAdapter()
-        findViewById<RecyclerView>(R.id.mediaRecyclerView).apply {
-            layoutManager = LinearLayoutManager(this@MainActivity)
-            adapter = mediaAdapter
+@Composable
+fun MainApp(viewModel: MediaViewModel) {
+    val navController = rememberNavController()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+
+    // 设置开关状态
+    var keepOriginal by remember { mutableStateOf(true) }
+    var autoSave by remember { mutableStateOf(true) }
+    var highDefinition by remember { mutableStateOf(false) }
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet(
+                modifier = Modifier.width(300.dp),
+                drawerContainerColor = Color.White
+            ) {
+                Spacer(Modifier.height(48.dp))
+                Text(
+                    "设置",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                HorizontalDivider()
+                
+                // 侧边栏中的具体设置开关
+                SettingsSwitchItem(
+                    title = "保留原文件",
+                    description = "压缩后不删除原始媒体文件",
+                    checked = keepOriginal,
+                    onCheckedChange = { keepOriginal = it }
+                )
+                
+                SettingsSwitchItem(
+                    title = "自动保存到相册",
+                    description = "压缩完成后自动导出",
+                    checked = autoSave,
+                    onCheckedChange = { autoSave = it }
+                )
+
+                SettingsSwitchItem(
+                    title = "极速编码模式",
+                    description = "牺牲体积换取更快的处理速度",
+                    checked = highDefinition,
+                    onCheckedChange = { highDefinition = it }
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+                
+                Text(
+                    "版本 1.0.0",
+                    modifier = Modifier.padding(16.dp),
+                    color = TextGrey,
+                    fontSize = 12.sp
+                )
+            }
         }
-    }
-
-    private fun setupButtons() {
-        findViewById<Button>(R.id.selectImageButton).setOnClickListener {
-            imagePickerLauncher.launch("image/*")
-        }
-
-        findViewById<Button>(R.id.selectVideoButton).setOnClickListener {
-            videoPickerLauncher.launch("video/*")
-        }
-
-        findViewById<Button>(R.id.startCompressionButton).setOnClickListener {
-            // 默认参数进行测试
-            viewModel.startCompression(80, 1920, 1080, 28, "1280:720")
-        }
-    }
-
-    private fun observeViewModel() {
-        lifecycleScope.launch {
-            viewModel.compressionTasks.collectLatest { tasks ->
-                mediaAdapter.submitList(tasks)
+    ) {
+        Scaffold(
+            bottomBar = {
+                // 仅在首页和历史页面显示底部导航
+                val showBottomBar = currentDestination?.route in listOf("home", "history")
+                if (showBottomBar) {
+                    NavigationBar(
+                        containerColor = Color.White,
+                        contentColor = PrimaryBlue,
+                        tonalElevation = 0.dp // 移除色调提升，保持纯白
+                    ) {
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Default.Home, contentDescription = "首页") },
+                            label = { Text("首页") },
+                            selected = currentDestination?.hierarchy?.any { it.route == "home" } == true,
+                            onClick = {
+                                navController.navigate("home") {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Default.History, contentDescription = "历史") },
+                            label = { Text("历史") },
+                            selected = currentDestination?.hierarchy?.any { it.route == "history" } == true,
+                            onClick = {
+                                navController.navigate("history") {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        ) { innerPadding ->
+            NavHost(
+                navController = navController, 
+                startDestination = "home",
+                modifier = Modifier.fillMaxSize(),
+                enterTransition = {
+                    slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300))
+                },
+                exitTransition = {
+                    slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+                },
+                popEnterTransition = {
+                    slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300))
+                },
+                popExitTransition = {
+                    slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+                }
+            ) {
+                composable("home") {
+                    HomeScreen(
+                        modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
+                        onMenuClick = { scope.launch { drawerState.open() } },
+                        onNavigateToSettings = { items ->
+                            viewModel.addTasks(items)
+                            navController.navigate("settings")
+                        }
+                    )
+                }
+                composable("history") {
+                    HistoryScreen(
+                        modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
+                        viewModel = viewModel
+                    )
+                }
+                composable("settings") {
+                    SettingsScreen(
+                        modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
+                        viewModel = viewModel,
+                        onBackClick = { navController.popBackStack() },
+                        onNavigateToCompleted = { 
+                            navController.navigate("completed") {
+                                popUpTo("settings") { inclusive = true }
+                            }
+                        }
+                    )
+                }
+                composable("completed") {
+                    CompletedScreen(
+                        modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
+                        viewModel = viewModel,
+                        onBackClick = { navController.popBackStack("home", inclusive = false) }
+                    )
+                }
             }
         }
     }
+}
 
-    private fun handleSelectedUris(uris: List<Uri>, type: MediaType) {
-        val mediaItems = uris.map { uri ->
-            val name = getFileName(uri)
-            val size = getFileSize(uri)
-            val path = if (type == MediaType.VIDEO) {
-                // 对于视频，FFmpeg 需要一个文件路径。如果无法直接获取，我们将其复制到临时文件。
-                copyUriToTempFile(uri, name)
-            } else {
-                uri.toString()
-            }
-
-            MediaItem(
-                id = System.currentTimeMillis() + uri.hashCode(),
-                uri = uri,
-                name = name,
-                path = path,
-                size = size,
-                type = type
+@Composable
+fun SettingsSwitchItem(
+    title: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(text = description, color = TextGrey, fontSize = 12.sp)
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = PrimaryBlue
             )
-        }
-        viewModel.addTasks(mediaItems)
-    }
-
-    private fun getFileName(uri: Uri): String {
-        var result: String? = null
-        if (uri.scheme == "content") {
-            val cursor = contentResolver.query(uri, null, null, null, null)
-            cursor?.use {
-                if (it.moveToFirst()) {
-                    val index = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    if (index != -1) result = it.getString(index)
-                }
-            }
-        }
-        if (result == null) {
-            result = uri.path
-            val cut = result?.lastIndexOf('/') ?: -1
-            if (cut != -1) {
-                result = result?.substring(cut + 1)
-            }
-        }
-        return result ?: "unknown"
-    }
-
-    private fun getFileSize(uri: Uri): Long {
-        var size: Long = 0
-        if (uri.scheme == "content") {
-            val cursor = contentResolver.query(uri, null, null, null, null)
-            cursor?.use {
-                if (it.moveToFirst()) {
-                    val index = it.getColumnIndex(OpenableColumns.SIZE)
-                    if (index != -1) size = it.getLong(index)
-                }
-            }
-        }
-        return size
-    }
-
-    private fun copyUriToTempFile(uri: Uri, fileName: String): String {
-        val tempFile = File(cacheDir, fileName)
-        contentResolver.openInputStream(uri)?.use { input ->
-            FileOutputStream(tempFile).use { output ->
-                input.copyTo(output)
-            }
-        }
-        return tempFile.absolutePath
+        )
     }
 }
