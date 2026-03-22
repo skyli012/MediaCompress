@@ -1,6 +1,9 @@
 # MediaCompress
 Kotlin Compose Architecture API
-
+</div>
+<div align="center">
+  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" alt="MediaCompress App Icon" width="120" />
+</div>
 ## 🎯 项目简介
 **MediaCompress** 是一款基于 Android 的高性能智能媒体压缩应用。
 它实现了从 媒体选取 → 智能压缩 → 本地存储 → 结果展示 的完整闭环，支持图片和视频的全方位压缩优化，在保证画质的前提下，文件体积可减少 60%~80%+，并在各种网络环境下保持稳定、高效的响应速度。
