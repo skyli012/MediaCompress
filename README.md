@@ -7,7 +7,7 @@
 </div>
 
 <div align="center">
-  <img src="docs/icons/ic_launcher.webp" alt="MediaCompress App Icon" width="120" />
+  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" alt="MediaCompress App Icon" width="120" />
 </div>
 
 > 一款基于 **Android** 的高性能媒体压缩应用，使用 **Kotlin + Jetpack Compose + MVVM** 架构打造，支持拍照选取、相册导入、智能压缩与本地存储，全流程流畅高效。
