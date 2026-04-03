@@ -46,6 +46,7 @@ fun CompletedScreen(
     viewModel: MediaViewModel,
     onBackClick: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     
@@ -140,83 +141,93 @@ fun CompletedScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Result Preview Card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                if (firstItem != null) {
-                    Column {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .background(Color(0xFFE8F1FF)),
-                            contentAlignment = Alignment.Center
+            // Result Preview List
+            if (completedItems.isNotEmpty() || selectedItems.isNotEmpty()) {
+                val displayItems = completedItems.ifEmpty { selectedItems }
+                androidx.compose.foundation.lazy.LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(displayItems.size) { index ->
+                        val item = displayItems[index]
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                         ) {
-                            if (firstItem.type == MediaType.IMAGE) {
-                                AsyncImage(
-                                    model = firstItem.compressedPath?.let { java.io.File(it) } ?: firstItem.uri,
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Fit
-                                )
-                            } else {
-                                Icon(
-                                    Icons.Default.Videocam,
-                                    contentDescription = null,
-                                    tint = PrimaryBlue,
-                                    modifier = Modifier.size(64.dp)
-                                )
-                            }
-                        }
-                        Row(
-                            modifier = Modifier
-                                .padding(10.dp)
-                                .fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                modifier = Modifier.size(28.dp),
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFFE8F1FF)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    if (firstItem.type == MediaType.IMAGE) Icons.Default.Image else Icons.Default.Videocam,
-                                    contentDescription = null,
-                                    modifier = Modifier.padding(6.dp),
-                                    tint = PrimaryBlue
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    firstItem.name,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1
-                                )
-                                Text(
-                                    if (firstItem.type == MediaType.IMAGE) "${firstItem.width} × ${firstItem.height} • ${firstItem.name.substringAfterLast('.').toUpperCase(java.util.Locale.ROOT)}" else formatDuration(firstItem.duration),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = TextGrey,
-                                    fontSize = 10.sp
-                                )
-                            }
-                            IconButton(
-                                onClick = { /* History back icon? */ },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.History,
-                                    contentDescription = null,
-                                    tint = PrimaryBlue,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFFE8F1FF)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    AsyncImage(
+                                        model = item.compressedPath?.let { java.io.File(it) } ?: item.uri,
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    if (item.type == MediaType.VIDEO) {
+                                        Surface(
+                                            color = Color(0x66000000),
+                                            shape = CircleShape,
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.PlayArrow,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier.padding(4.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        item.name,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        if (item.type == MediaType.IMAGE) "${item.width} × ${item.height} • ${item.name.substringAfterLast('.').toUpperCase(java.util.Locale.ROOT)}" else formatDuration(item.duration),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = TextGrey,
+                                        fontSize = 10.sp
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        formatSize(item.size),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color.Black,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        if (item.compressedSize > 0) formatSize(item.compressedSize) else "处理中",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = SuccessGreen,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     }
@@ -226,19 +237,19 @@ fun CompletedScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Size Comparison
+            val totalOriginalSize = (completedItems.ifEmpty { selectedItems }).sumOf { it.size }
+            val totalCompressedSize = completedItems.sumOf { it.compressedSize }
             Row(modifier = Modifier.fillMaxWidth()) {
                 ComparisonCard(
-                    label = "压缩前",
-                    size = formatSize(firstItem?.size ?: 0),
+                    label = "压缩前总计",
+                    size = formatSize(totalOriginalSize),
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 ComparisonCard(
-                    label = "压缩后",
-                    size = formatSize(firstItem?.compressedSize ?: 0),
-                    savings = firstItem?.let {
-                        if (it.size > 0) "-${((it.size - it.compressedSize) * 100 / it.size)}%" else "-0%"
-                    } ?: "-0%",
+                    label = "压缩后总计",
+                    size = formatSize(totalCompressedSize),
+                    savings = if (totalOriginalSize > 0) "-${((totalOriginalSize - totalCompressedSize) * 100 / totalOriginalSize)}%" else "-0%",
                     isResult = true,
                     modifier = Modifier.weight(1f)
                 )
@@ -250,8 +261,30 @@ fun CompletedScreen(
             Button(
                 onClick = { 
                     scope.launch {
+                        var successCount = 0
+                        val itemsToSave = completedItems.filter { it.status == com.hailong.mediacompress.model.CompressionStatus.COMPLETED && it.compressedPath != null }
+                        
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            itemsToSave.forEach { item ->
+                                val file = java.io.File(item.compressedPath!!)
+                                if (file.exists()) {
+                                    val isVideo = item.type == MediaType.VIDEO
+                                    val ext = file.extension.toLowerCase(java.util.Locale.ROOT)
+                                    val mimeType = if (isVideo) {
+                                        "video/${if (ext == "mov") "quicktime" else "mp4"}"
+                                    } else {
+                                        "image/${if (ext == "jpg") "jpeg" else ext}"
+                                    }
+                                    val uri = com.hailong.mediacompress.utils.MediaUtils.saveToGallery(context, file, isVideo, mimeType)
+                                    if (uri != null) {
+                                        successCount++
+                                    }
+                                }
+                            }
+                        }
+                        
                         snackbarHostState.showSnackbar(
-                            message = "保存成功",
+                            message = if (successCount > 0) "成功保存 $successCount 个文件到相册" else "保存失败",
                             duration = SnackbarDuration.Short
                         )
                     }
@@ -272,7 +305,37 @@ fun CompletedScreen(
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(
-                    onClick = { /* Share */ },
+                    onClick = { 
+                        val itemsToShare = completedItems.filter { it.status == com.hailong.mediacompress.model.CompressionStatus.COMPLETED && it.compressedPath != null }
+                        if (itemsToShare.isNotEmpty()) {
+                            val uris = itemsToShare.mapNotNull { item ->
+                                val file = java.io.File(item.compressedPath!!)
+                                if (file.exists()) {
+                                    androidx.core.content.FileProvider.getUriForFile(
+                                        context,
+                                        "${context.packageName}.fileprovider",
+                                        file
+                                    )
+                                } else null
+                            }
+                            if (uris.isNotEmpty()) {
+                                val intent = android.content.Intent().apply {
+                                    if (uris.size == 1) {
+                                        action = android.content.Intent.ACTION_SEND
+                                        putExtra(android.content.Intent.EXTRA_STREAM, uris.first())
+                                    } else {
+                                        action = android.content.Intent.ACTION_SEND_MULTIPLE
+                                        putParcelableArrayListExtra(android.content.Intent.EXTRA_STREAM, ArrayList(uris))
+                                    }
+                                    type = if (itemsToShare.all { it.type == MediaType.IMAGE }) "image/*" 
+                                           else if (itemsToShare.all { it.type == MediaType.VIDEO }) "video/*"
+                                           else "*/*"
+                                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(android.content.Intent.createChooser(intent, "分享到"))
+                            }
+                        }
+                    },
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp),

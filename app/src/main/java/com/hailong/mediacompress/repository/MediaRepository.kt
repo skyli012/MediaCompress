@@ -37,7 +37,7 @@ class MediaRepository(private val context: Context) {
         dir
     }
 
-    suspend fun compressImages(mediaItems: List<MediaItem>, quality: Int, format: String, scale: Float) = withContext(Dispatchers.IO) {
+    suspend fun compressImages(mediaItems: List<MediaItem>, quality: Int, format: String, scale: Float, keepOriginal: Boolean) = withContext(Dispatchers.IO) {
         mediaItems.forEach { mediaItem ->
             updateTaskStatus(mediaItem.id, CompressionStatus.PROCESSING, 0f)
             
@@ -66,8 +66,19 @@ class MediaRepository(private val context: Context) {
             )
 
             if (resultFile != null && resultFile.exists() && resultFile.length() > 0) {
-                val mimeType = "image/${finalFormat.toLowerCase(java.util.Locale.ROOT).let { if (it == "jpg") "jpeg" else it }}"
-                MediaUtils.saveToGallery(context, resultFile, false, mimeType)
+                if (!keepOriginal) {
+                    try {
+                        val originalFile = File(mediaItem.path)
+                        if (originalFile.exists()) {
+                            originalFile.delete()
+                        } else {
+                            // If path is a content URI, we need to delete it via ContentResolver
+                            context.contentResolver.delete(mediaItem.uri, null, null)
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
                 updateTaskStatus(mediaItem.id, CompressionStatus.COMPLETED, 1f, resultFile.absolutePath, resultFile.length())
             } else {
                 updateTaskStatus(mediaItem.id, CompressionStatus.FAILED, 0f)
@@ -75,7 +86,7 @@ class MediaRepository(private val context: Context) {
         }
     }
 
-    suspend fun compressVideo(mediaItem: MediaItem, quality: String, resolution: String, removeAudio: Boolean) = withContext(Dispatchers.IO) {
+    suspend fun compressVideo(mediaItem: MediaItem, quality: String, resolution: String, removeAudio: Boolean, keepOriginal: Boolean) = withContext(Dispatchers.IO) {
         updateTaskStatus(mediaItem.id, CompressionStatus.PROCESSING, 0f)
         
         val outputFileName = "vid_${System.currentTimeMillis()}_${mediaItem.name}"
@@ -113,9 +124,18 @@ class MediaRepository(private val context: Context) {
                         if (success && outputPath != null) {
                             val resultFile = File(outputPath)
                             if (resultFile.exists() && resultFile.length() > 0) {
-                                val ext = resultFile.extension.toLowerCase(java.util.Locale.ROOT)
-                                val mimeType = "video/${if (ext == "mov") "quicktime" else "mp4"}"
-                                MediaUtils.saveToGallery(context, resultFile, true, mimeType)
+                                if (!keepOriginal) {
+                                    try {
+                                        val originalFile = File(mediaItem.path)
+                                        if (originalFile.exists()) {
+                                            originalFile.delete()
+                                        } else {
+                                            context.contentResolver.delete(mediaItem.uri, null, null)
+                                        }
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
+                                }
                                 updateTaskStatus(mediaItem.id, CompressionStatus.COMPLETED, 1f, outputPath, resultFile.length())
                             } else {
                                 updateTaskStatus(mediaItem.id, CompressionStatus.FAILED, 0f)
@@ -156,6 +176,10 @@ class MediaRepository(private val context: Context) {
 
     suspend fun clearAllHistory() = withContext(Dispatchers.IO) {
         dao.deleteAll()
+    }
+
+    suspend fun deleteTask(id: Long) = withContext(Dispatchers.IO) {
+        dao.deleteById(id)
     }
 
     private fun MediaItemEntity.toMediaItem() = MediaItem(

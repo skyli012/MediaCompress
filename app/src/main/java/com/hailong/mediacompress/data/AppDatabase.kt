@@ -40,6 +40,9 @@ interface MediaItemDao {
     @Query("DELETE FROM media_items")
     suspend fun deleteAll()
 
+    @Query("DELETE FROM media_items WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
     @Query("SELECT * FROM media_items WHERE id = :id")
     suspend fun getById(id: Long): MediaItemEntity?
 }

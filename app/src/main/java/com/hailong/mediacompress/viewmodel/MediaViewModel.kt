@@ -18,6 +18,19 @@ class MediaViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedItems = MutableStateFlow<List<MediaItem>>(emptyList())
     val selectedItems: StateFlow<List<MediaItem>> = _selectedItems
 
+    private val _keepOriginal = MutableStateFlow(true)
+    val keepOriginal: StateFlow<Boolean> = _keepOriginal
+
+    fun setKeepOriginal(keep: Boolean) {
+        _keepOriginal.value = keep
+    }
+
+    fun deleteTask(id: Long) {
+        viewModelScope.launch {
+            repository.deleteTask(id)
+        }
+    }
+
     fun addTasks(items: List<MediaItem>) {
         _selectedItems.value = items
         viewModelScope.launch {
@@ -28,14 +41,14 @@ class MediaViewModel(application: Application) : AndroidViewModel(application) {
     fun startImageCompression(quality: Int, format: String, scale: Float) {
         viewModelScope.launch {
             val itemsToCompress = _selectedItems.value.filter { it.type == MediaType.IMAGE }
-            repository.compressImages(itemsToCompress, quality, format, scale)
+            repository.compressImages(itemsToCompress, quality, format, scale, _keepOriginal.value)
         }
     }
 
     fun startVideoCompression(quality: String, resolution: String, removeAudio: Boolean) {
         viewModelScope.launch {
             _selectedItems.value.firstOrNull { it.type == MediaType.VIDEO }?.let { item ->
-                repository.compressVideo(item, quality, resolution, removeAudio)
+                repository.compressVideo(item, quality, resolution, removeAudio, _keepOriginal.value)
             }
         }
     }

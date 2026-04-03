@@ -68,6 +68,7 @@ object MediaUtils {
                 put(MediaStore.MediaColumns.RELATIVE_PATH, relativePath)
                 put(MediaStore.MediaColumns.IS_PENDING, 1)
             }
+            put(MediaStore.MediaColumns.SIZE, file.length())
         }
 
         val collection = if (isVideo) {

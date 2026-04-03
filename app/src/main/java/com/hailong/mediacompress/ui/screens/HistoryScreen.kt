@@ -1,15 +1,18 @@
 package com.hailong.mediacompress.ui.screens
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -186,7 +189,10 @@ fun HistoryScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(filteredTasks) { task ->
-                    HistoryItem(task)
+                    HistoryItem(
+                        item = task,
+                        onDeleteClick = { viewModel.deleteTask(task.id) }
+                    )
                 }
             }
         }
@@ -194,7 +200,35 @@ fun HistoryScreen(
 }
 
 @Composable
-fun HistoryItem(item: MediaItem) {
+fun HistoryItem(
+    item: MediaItem,
+    onDeleteClick: () -> Unit
+) {
+    var showItemDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showItemDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showItemDeleteDialog = false },
+            title = { Text("确认删除") },
+            text = { Text("确定要删除这条历史记录吗？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteClick()
+                        showItemDeleteDialog = false
+                    }
+                ) {
+                    Text("确认", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showItemDeleteDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -219,6 +253,23 @@ fun HistoryItem(item: MediaItem) {
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
+
+                if (item.type == MediaType.VIDEO) {
+                    Surface(
+                        color = Color(0x66000000),
+                        shape = CircleShape,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.padding(6.dp)
+                        )
+                    }
+                }
 
                 // Format Tag
                 Surface(
@@ -279,8 +330,8 @@ fun HistoryItem(item: MediaItem) {
                 )
             }
 
-            IconButton(onClick = { /* More */ }) {
-                Icon(Icons.Default.MoreVert, contentDescription = "More", tint = TextGrey)
+            IconButton(onClick = { showItemDeleteDialog = true }) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = TextGrey)
             }
         }
     }

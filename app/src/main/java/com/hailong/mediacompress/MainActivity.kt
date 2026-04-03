@@ -31,6 +31,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import coil.ImageLoader
+import coil.decode.VideoFrameDecoder
 import com.hailong.mediacompress.ui.screens.*
 import com.hailong.mediacompress.ui.theme.MediaCompressTheme
 import com.hailong.mediacompress.ui.theme.PrimaryBlue
@@ -55,6 +57,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
+        // 配置 Coil 支持视频帧解码
+        val imageLoader = ImageLoader.Builder(this)
+            .components {
+                add(VideoFrameDecoder.Factory())
+            }
+            .build()
+        coil.Coil.setImageLoader(imageLoader)
+
         setContent {
             MediaCompressTheme {
                 MainApp(viewModel)
@@ -94,8 +104,11 @@ fun MainApp(viewModel: MediaViewModel) {
 
     // 设置开关状态
     var keepOriginal by remember { mutableStateOf(true) }
-    var autoSave by remember { mutableStateOf(true) }
-    var highDefinition by remember { mutableStateOf(false) }
+
+    // 将设置传递给 ViewModel
+    LaunchedEffect(keepOriginal) {
+        viewModel.setKeepOriginal(keepOriginal)
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -119,20 +132,6 @@ fun MainApp(viewModel: MediaViewModel) {
                     description = "压缩后不删除原始媒体文件",
                     checked = keepOriginal,
                     onCheckedChange = { keepOriginal = it }
-                )
-                
-                SettingsSwitchItem(
-                    title = "自动保存到相册",
-                    description = "压缩完成后自动导出",
-                    checked = autoSave,
-                    onCheckedChange = { autoSave = it }
-                )
-
-                SettingsSwitchItem(
-                    title = "极速编码模式",
-                    description = "牺牲体积换取更快的处理速度",
-                    checked = highDefinition,
-                    onCheckedChange = { highDefinition = it }
                 )
 
                 Spacer(modifier = Modifier.weight(1f))

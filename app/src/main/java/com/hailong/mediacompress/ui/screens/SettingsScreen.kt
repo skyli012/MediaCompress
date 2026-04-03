@@ -503,6 +503,22 @@ fun SelectedMediaItem(item: MediaItem) {
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
+        if (item.type == MediaType.VIDEO) {
+            Surface(
+                color = Color(0x66000000),
+                shape = CircleShape,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(32.dp)
+            ) {
+                Icon(
+                    Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.padding(6.dp)
+                )
+            }
+        }
         Surface(
             modifier = Modifier
                 .align(Alignment.TopEnd)
