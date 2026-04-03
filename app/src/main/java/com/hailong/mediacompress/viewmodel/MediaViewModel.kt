@@ -21,8 +21,15 @@ class MediaViewModel(application: Application) : AndroidViewModel(application) {
     private val _keepOriginal = MutableStateFlow(true)
     val keepOriginal: StateFlow<Boolean> = _keepOriginal
 
+    private val _hapticFeedbackEnabled = MutableStateFlow(true)
+    val hapticFeedbackEnabled: StateFlow<Boolean> = _hapticFeedbackEnabled
+
     fun setKeepOriginal(keep: Boolean) {
         _keepOriginal.value = keep
+    }
+
+    fun setHapticFeedbackEnabled(enabled: Boolean) {
+        _hapticFeedbackEnabled.value = enabled
     }
 
     fun deleteTask(id: Long) {

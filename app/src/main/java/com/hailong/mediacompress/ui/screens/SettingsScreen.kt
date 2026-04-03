@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,6 +27,7 @@ import coil.compose.AsyncImage
 import com.hailong.mediacompress.model.MediaItem
 import com.hailong.mediacompress.model.MediaType
 import com.hailong.mediacompress.ui.theme.*
+import com.hailong.mediacompress.utils.HapticFeedback
 import com.hailong.mediacompress.viewmodel.MediaViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,6 +39,7 @@ fun SettingsScreen(
     onNavigateToCompleted: () -> Unit
 ) {
     val selectedItems by viewModel.selectedItems.collectAsState()
+    val hapticFeedbackEnabled by viewModel.hapticFeedbackEnabled.collectAsState()
     val mediaType = selectedItems.firstOrNull()?.type ?: MediaType.IMAGE
 
     // Image settings states
@@ -170,7 +173,8 @@ fun SettingsScreen(
                     scale = imageScale,
                     onQualityChange = { imageQuality = it },
                     onFormatChange = { imageFormat = it },
-                    onScaleChange = { imageScale = it }
+                    onScaleChange = { imageScale = it },
+                    hapticFeedbackEnabled = hapticFeedbackEnabled
                 )
                 MediaType.VIDEO -> VideoSettings(
                     quality = videoQuality,
@@ -178,7 +182,8 @@ fun SettingsScreen(
                     removeAudio = removeAudio,
                     onQualityChange = { videoQuality = it },
                     onResolutionChange = { videoResolution = it },
-                    onRemoveAudioChange = { removeAudio = it }
+                    onRemoveAudioChange = { removeAudio = it },
+                    hapticFeedbackEnabled = hapticFeedbackEnabled
                 )
             }
 
@@ -239,6 +244,31 @@ fun SettingsScreen(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Haptic Feedback Switch
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.setHapticFeedbackEnabled(!hapticFeedbackEnabled) }
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("震动反馈", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                    Text("在交互时提供震动提示", fontSize = 11.sp, color = TextGrey)
+                }
+                Switch(
+                    checked = hapticFeedbackEnabled,
+                    onCheckedChange = { viewModel.setHapticFeedbackEnabled(it) },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = PrimaryBlue
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Button(
                 onClick = {
                     if (mediaType == MediaType.IMAGE) {
@@ -348,8 +378,12 @@ fun ImageSettings(
     scale: Float,
     onQualityChange: (String) -> Unit,
     onFormatChange: (String) -> Unit,
-    onScaleChange: (Float) -> Unit
+    onScaleChange: (Float) -> Unit,
+    hapticFeedbackEnabled: Boolean = true
 ) {
+    val context = LocalContext.current
+    var lastVibrationValue by remember { mutableFloatStateOf(scale) }
+
     Column {
         // Quality
         Text(
@@ -407,7 +441,14 @@ fun ImageSettings(
         }
         Slider(
             value = scale,
-            onValueChange = onScaleChange,
+            onValueChange = { newValue ->
+                onScaleChange(newValue)
+                // 每移动5%触发一次震动
+                if (hapticFeedbackEnabled && kotlin.math.abs(newValue - lastVibrationValue) >= 5f) {
+                    HapticFeedback.lightVibration(context)
+                    lastVibrationValue = newValue
+                }
+            },
             valueRange = 25f..100f,
             modifier = Modifier.height(28.dp),
             colors = SliderDefaults.colors(
@@ -426,8 +467,11 @@ fun VideoSettings(
     removeAudio: Boolean,
     onQualityChange: (String) -> Unit,
     onResolutionChange: (String) -> Unit,
-    onRemoveAudioChange: (Boolean) -> Unit
+    onRemoveAudioChange: (Boolean) -> Unit,
+    hapticFeedbackEnabled: Boolean = true
 ) {
+    val context = LocalContext.current
+
     Column {
         // Video Quality
         Text(
@@ -442,9 +486,18 @@ fun VideoSettings(
             colors = CardDefaults.cardColors(containerColor = Color(0xFFEDF1F7))
         ) {
             Row(modifier = Modifier.padding(4.dp)) {
-                QualityButton("低", quality == "低") { onQualityChange("低") }
-                QualityButton("中", quality == "中") { onQualityChange("中") }
-                QualityButton("高", quality == "高") { onQualityChange("高") }
+                QualityButton("低", quality == "低") {
+                    if (hapticFeedbackEnabled) HapticFeedback.lightVibration(context)
+                    onQualityChange("低")
+                }
+                QualityButton("中", quality == "中") {
+                    if (hapticFeedbackEnabled) HapticFeedback.lightVibration(context)
+                    onQualityChange("中")
+                }
+                QualityButton("高", quality == "高") {
+                    if (hapticFeedbackEnabled) HapticFeedback.lightVibration(context)
+                    onQualityChange("高")
+                }
             }
         }
 
@@ -458,9 +511,15 @@ fun VideoSettings(
         )
         Spacer(modifier = Modifier.height(4.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
-            FormatCard("720p", resolution == "720p", modifier = Modifier.weight(1f)) { onResolutionChange("720p") }
+            FormatCard("720p", resolution == "720p", modifier = Modifier.weight(1f)) {
+                if (hapticFeedbackEnabled) HapticFeedback.lightVibration(context)
+                onResolutionChange("720p")
+            }
             Spacer(modifier = Modifier.width(10.dp))
-            FormatCard("1080p", resolution == "1080p", modifier = Modifier.weight(1f)) { onResolutionChange("1080p") }
+            FormatCard("1080p", resolution == "1080p", modifier = Modifier.weight(1f)) {
+                if (hapticFeedbackEnabled) HapticFeedback.lightVibration(context)
+                onResolutionChange("1080p")
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -469,7 +528,10 @@ fun VideoSettings(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onRemoveAudioChange(!removeAudio) }
+                .clickable {
+                    if (hapticFeedbackEnabled) HapticFeedback.lightVibration(context)
+                    onRemoveAudioChange(!removeAudio)
+                }
                 .padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -480,7 +542,10 @@ fun VideoSettings(
             }
             Switch(
                 checked = removeAudio,
-                onCheckedChange = onRemoveAudioChange,
+                onCheckedChange = {
+                    if (hapticFeedbackEnabled) HapticFeedback.lightVibration(context)
+                    onRemoveAudioChange(it)
+                },
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = Color.White,
                     checkedTrackColor = PrimaryBlue
