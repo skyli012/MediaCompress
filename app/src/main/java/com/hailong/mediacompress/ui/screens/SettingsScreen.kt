@@ -244,31 +244,6 @@ fun SettingsScreen(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Haptic Feedback Switch
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { viewModel.setHapticFeedbackEnabled(!hapticFeedbackEnabled) }
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text("震动反馈", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
-                    Text("在交互时提供震动提示", fontSize = 11.sp, color = TextGrey)
-                }
-                Switch(
-                    checked = hapticFeedbackEnabled,
-                    onCheckedChange = { viewModel.setHapticFeedbackEnabled(it) },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = PrimaryBlue
-                    )
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
             Button(
                 onClick = {
                     if (mediaType == MediaType.IMAGE) {
@@ -307,7 +282,7 @@ fun SettingsScreen(
 private fun formatSize(size: Long): String {
     val kb = size / 1024.0
     val mb = kb / 1024.0
-    return if (mb >= 1) String.format("%.2f MB", mb) else String.format("%.2f KB", kb)
+    return if (mb >= 1) "≈ " + String.format("%.2f MB", mb) else "≈ " + String.format("%.2f KB", kb)
 }
 
 @Composable

@@ -36,7 +36,7 @@ fun formatDuration(seconds: Long): String {
 private fun formatSize(size: Long): String {
     val kb = size / 1024.0
     val mb = kb / 1024.0
-    return if (mb >= 1) String.format("%.2f MB", mb) else String.format("%.2f KB", kb)
+    return if (mb >= 1) "≈ " + String.format("%.2f MB", mb) else "≈ " + String.format("%.2f KB", kb)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

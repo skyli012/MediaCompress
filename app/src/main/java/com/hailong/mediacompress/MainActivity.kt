@@ -104,10 +104,15 @@ fun MainApp(viewModel: MediaViewModel) {
 
     // 设置开关状态
     var keepOriginal by remember { mutableStateOf(true) }
+    var hapticFeedbackEnabled by remember { mutableStateOf(true) }
 
     // 将设置传递给 ViewModel
     LaunchedEffect(keepOriginal) {
         viewModel.setKeepOriginal(keepOriginal)
+    }
+
+    LaunchedEffect(hapticFeedbackEnabled) {
+        viewModel.setHapticFeedbackEnabled(hapticFeedbackEnabled)
     }
 
     ModalNavigationDrawer(
@@ -132,6 +137,13 @@ fun MainApp(viewModel: MediaViewModel) {
                     description = "压缩后不删除原始媒体文件",
                     checked = keepOriginal,
                     onCheckedChange = { keepOriginal = it }
+                )
+
+                SettingsSwitchItem(
+                    title = "震动反馈",
+                    description = "在交互时提供震动提示",
+                    checked = hapticFeedbackEnabled,
+                    onCheckedChange = { hapticFeedbackEnabled = it }
                 )
 
                 Spacer(modifier = Modifier.weight(1f))
