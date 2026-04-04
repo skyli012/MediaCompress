@@ -107,27 +107,6 @@
         └── theme/                       # 主题配置
 ```
 
-## 🚀 快速开始
-
-### 环境要求
-- Android Studio Koala 或更高版本
-- Android SDK 24+ (Android 7.0)
-- Kotlin 1.9.20+
-- Gradle 8.0+
-
-### 编译与运行
-```bash
-# 克隆项目
-git clone https://github.com/your-repo/MediaCompress.git
-cd MediaCompress
-
-# 构建项目
-./gradlew build
-
-# 运行应用
-./gradlew installDebug
-```
-
 ---
 
 > 💡 **MediaCompress** 旨在让媒体压缩更智能高效，让存储空间充分利用。
