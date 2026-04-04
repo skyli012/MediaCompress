@@ -10,7 +10,7 @@
   <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" alt="MediaCompress App Icon" width="120" />
 </div>
 
-> 一款基于 **Android** 的高性能媒体压缩应用，使用 **Kotlin + Jetpack Compose + MVVM** 架构打造，支持拍照选取、相册导入、智能压缩与本地存储，全流程流畅高效。
+> 一款基于 **Android** 的媒体压缩应用，使用 **Kotlin + Jetpack Compose + MVVM** 架构打造，支持拍照选取、相册导入、智能压缩与本地存储，全流程流畅高效。
 
 ---
 
@@ -105,27 +105,6 @@
     └── ui/
         ├── screens/                     # 功能页面
         └── theme/                       # 主题配置
-```
-
-## 🚀 快速开始
-
-### 环境要求
-- Android Studio Koala 或更高版本
-- Android SDK 24+ (Android 7.0)
-- Kotlin 1.9.20+
-- Gradle 8.0+
-
-### 编译与运行
-```bash
-# 克隆项目
-git clone https://github.com/your-repo/MediaCompress.git
-cd MediaCompress
-
-# 构建项目
-./gradlew build
-
-# 运行应用
-./gradlew installDebug
 ```
 
 ---
